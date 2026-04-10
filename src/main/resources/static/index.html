@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoteSecure — Online Voting</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --card: #1a2236;
+    --accent: #4f8ef7; --accent2: #7c3aed; --green: #10b981;
+    --red: #ef4444; --text: #e2e8f0; --muted: #64748b;
+    --border: #1e2d45; --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+
+  /* ── NAV ── */
+  nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 2rem;
+        display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem;
+          background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .nav-right { display:flex; align-items:center; gap:1rem; }
+  .btn { padding:.55rem 1.2rem; border-radius:8px; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:500; transition:.2s; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#3b7de8; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover { color:var(--text); border-color:var(--accent); }
+  .btn-danger { background:var(--red); color:#fff; }
+  .btn-sm { padding:.35rem .8rem; font-size:.82rem; }
+  #userInfo { color:var(--muted); font-size:.88rem; }
+
+  /* ── HERO ── */
+  .hero { text-align:center; padding:5rem 2rem 3rem; }
+  .hero h1 { font-family:'Syne',sans-serif; font-size:clamp(2rem,5vw,3.5rem); font-weight:800; line-height:1.1;
+              background:linear-gradient(135deg,#e2e8f0 30%,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { color:var(--muted); margin-top:1rem; font-size:1.1rem; max-width:500px; margin-inline:auto; }
+  .badge { display:inline-flex; align-items:center; gap:.4rem; background:rgba(79,142,247,.12);
+           color:var(--accent); border:1px solid rgba(79,142,247,.25); border-radius:999px; padding:.3rem .9rem; font-size:.8rem; margin-bottom:1.5rem; }
+  .badge::before { content:'🔒'; }
+
+  /* ── SECTIONS ── */
+  .section { max-width:1100px; margin:0 auto; padding:0 1.5rem 4rem; }
+  .section-title { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; margin-bottom:1.5rem;
+                   display:flex; align-items:center; gap:.6rem; }
+  .section-title span { color:var(--muted); font-size:.85rem; font-family:'DM Sans',sans-serif; font-weight:400; }
+
+  /* ── AUTH MODAL ── */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; }
+  .overlay.show { display:flex; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:2rem; width:100%; max-width:420px; }
+  .modal h2 { font-family:'Syne',sans-serif; font-weight:700; margin-bottom:1.5rem; }
+  .tabs { display:flex; gap:.5rem; margin-bottom:1.5rem; }
+  .tab { flex:1; padding:.6rem; border-radius:8px; border:1px solid var(--border); background:transparent;
+         color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:.2s; }
+  .tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .form-group { margin-bottom:1rem; }
+  label { display:block; font-size:.83rem; color:var(--muted); margin-bottom:.4rem; }
+  input { width:100%; padding:.7rem 1rem; background:var(--surface); border:1px solid var(--border);
+          border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.95rem; outline:none; }
+  input:focus { border-color:var(--accent); }
+  .close-btn { float:right; background:none; border:none; color:var(--muted); font-size:1.4rem; cursor:pointer; line-height:1; margin-top:-.3rem; }
+  .close-btn:hover { color:var(--text); }
+
+  /* ── ELECTION CARDS ── */
+  .elections-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.25rem; }
+  .election-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; transition:.25s; }
+  .election-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .election-card h3 { font-family:'Syne',sans-serif; font-weight:700; margin-bottom:.5rem; }
+  .election-card p { color:var(--muted); font-size:.88rem; margin-bottom:1rem; line-height:1.5; }
+  .meta { display:flex; gap:1rem; font-size:.78rem; color:var(--muted); margin-bottom:1.2rem; flex-wrap:wrap; }
+  .status-badge { display:inline-block; padding:.2rem .7rem; border-radius:999px; font-size:.75rem; font-weight:600; }
+  .status-ACTIVE  { background:rgba(16,185,129,.15); color:var(--green); }
+  .status-DRAFT   { background:rgba(100,116,139,.15); color:var(--muted); }
+  .status-CLOSED  { background:rgba(239,68,68,.12);  color:var(--red);  }
+
+  /* ── VOTE MODAL ── */
+  .candidate-list { display:flex; flex-direction:column; gap:.75rem; max-height:55vh; overflow-y:auto; padding-right:.3rem; }
+  .candidate-item { display:flex; align-items:center; gap:1rem; padding:1rem; background:var(--surface);
+                    border:2px solid var(--border); border-radius:10px; cursor:pointer; transition:.2s; }
+  .candidate-item:hover { border-color:var(--accent); }
+  .candidate-item.selected { border-color:var(--accent); background:rgba(79,142,247,.08); }
+  .avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2));
+            display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; flex-shrink:0; }
+  .candidate-info h4 { font-weight:600; margin-bottom:.2rem; }
+  .candidate-info small { color:var(--muted); font-size:.8rem; }
+  .vote-check { margin-left:auto; color:var(--accent); font-size:1.3rem; display:none; }
+  .candidate-item.selected .vote-check { display:block; }
+
+  /* ── RESULTS ── */
+  .result-bar-wrap { margin-bottom:1.2rem; }
+  .result-label { display:flex; justify-content:space-between; font-size:.88rem; margin-bottom:.4rem; }
+  .result-bar { height:10px; background:var(--border); border-radius:999px; overflow:hidden; }
+  .result-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:999px; transition:width .6s ease; }
+  .winner-tag { background:rgba(16,185,129,.15); color:var(--green); border-radius:999px; padding:.1rem .6rem; font-size:.72rem; font-weight:700; margin-left:.5rem; }
+
+  /* ── VERIFY ── */
+  .verify-box { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; max-width:560px; }
+  .verify-result { margin-top:1rem; padding:1rem; border-radius:8px; font-size:.9rem; display:none; }
+  .verify-result.ok  { background:rgba(16,185,129,.12); color:var(--green); }
+  .verify-result.err { background:rgba(239,68,68,.12); color:var(--red); }
+
+  /* ── TOAST ── */
+  #toast { position:fixed; bottom:2rem; right:2rem; background:var(--card); border:1px solid var(--border);
+           border-radius:10px; padding:.9rem 1.4rem; font-size:.9rem; opacity:0; transform:translateY(10px);
+           transition:.3s; pointer-events:none; z-index:999; max-width:360px; }
+  #toast.show { opacity:1; transform:translateY(0); }
+  #toast.success { border-left:4px solid var(--green); }
+  #toast.error   { border-left:4px solid var(--red);   }
+
+  .empty { text-align:center; color:var(--muted); padding:3rem; }
+  .receipt-box { background:var(--surface); border:1px dashed var(--border); border-radius:8px;
+                  padding:1rem; margin-top:1rem; font-family:monospace; font-size:.78rem; word-break:break-all; color:var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">⬡ VoteSecure</div>
+  <div class="nav-right">
+    <span id="userInfo" style="display:none"></span>
+    <button class="btn btn-ghost btn-sm" id="adminBtn" style="display:none" onclick="location.href='/admin.html'">Admin Panel</button>
+    <button class="btn btn-primary btn-sm" id="loginBtn" onclick="openAuth()">Login / Register</button>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn" style="display:none" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">End-to-end secure voting platform</div>
+  <h1>Your Voice,<br/>Secured & Counted</h1>
+  <p>Cast your vote with confidence. Every ballot is encrypted, anonymised, and verifiable.</p>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="overlay" id="authOverlay">
+  <div class="modal">
+    <button class="close-btn" onclick="closeAuth()">×</button>
+    <h2>Welcome</h2>
+    <div class="tabs">
+      <button class="tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="tab" id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="loginForm">
+      <div class="form-group"><label>Username</label><input id="l-user" placeholder="your username"/></div>
+      <div class="form-group"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••"/></div>
+      <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Login</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="form-group"><label>Full Name</label><input id="r-name" placeholder="John Doe"/></div>
+      <div class="form-group"><label>Username</label><input id="r-user" placeholder="johndoe"/></div>
+      <div class="form-group"><label>Email</label><input id="r-email" type="email" placeholder="john@example.com"/></div>
+      <div class="form-group"><label>Password (min 8 chars)</label><input id="r-pass" type="password" placeholder="••••••••"/></div>
+      <button class="btn btn-primary" style="width:100%" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- VOTE MODAL -->
+<div class="overlay" id="voteOverlay">
+  <div class="modal" style="max-width:520px">
+    <button class="close-btn" onclick="closeVote()">×</button>
+    <h2 id="voteElectionTitle">Cast Your Vote</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:1.2rem">Select your preferred candidate</p>
+    <div class="candidate-list" id="candidateList"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:1.2rem" onclick="submitVote()">Submit Vote</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="section">
+
+  <!-- Active Elections -->
+  <div class="section-title">🗳️ Active Elections <span id="electionCount"></span></div>
+  <div class="elections-grid" id="electionsGrid">
+    <div class="empty">Loading elections…</div>
+  </div>
+
+  <!-- Verify Receipt -->
+  <div style="margin-top:3rem">
+    <div class="section-title">🔍 Verify Your Vote</div>
+    <div class="verify-box">
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:1rem">Enter your receipt hash to confirm your vote was recorded.</p>
+      <div style="display:flex;gap:.75rem">
+        <input id="receiptInput" placeholder="Paste your receipt hash…" style="flex:1"/>
+        <button class="btn btn-primary" onclick="verifyReceipt()">Verify</button>
+      </div>
+      <div class="verify-result" id="verifyResult"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('token');
+let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+let selectedCandidateId = null;
+let currentElectionId   = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updateNav();
+  loadElections();
+});
+
+function updateNav() {
+  if (token && currentUser) {
+    document.getElementById('userInfo').textContent = `👤 ${currentUser.fullName}`;
+    document.getElementById('userInfo').style.display = 'block';
+    document.getElementById('loginBtn').style.display  = 'none';
+    document.getElementById('logoutBtn').style.display = 'block';
+    if (currentUser.role === 'ADMIN')
+      document.getElementById('adminBtn').style.display = 'block';
+  } else {
+    document.getElementById('userInfo').style.display  = 'none';
+    document.getElementById('loginBtn').style.display  = 'block';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('adminBtn').style.display  = 'none';
+  }
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function openAuth()  { document.getElementById('authOverlay').classList.add('show'); }
+function closeAuth() { document.getElementById('authOverlay').classList.remove('show'); }
+function switchTab(t) {
+  document.getElementById('loginForm').style.display    = t==='login'    ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = t==='register' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',    t==='login');
+  document.getElementById('tab-register').classList.toggle('active', t==='register');
+}
+
+async function doLogin() {
+  const body = { username: v('l-user'), password: v('l-pass') };
+  const data = await post('/auth/login', body);
+  if (data.token) { saveAuth(data); closeAuth(); loadElections(); toast('Welcome back, '+data.fullName+'!','success'); }
+}
+
+async function doRegister() {
+  const body = { fullName:v('r-name'), username:v('r-user'), email:v('r-email'), password:v('r-pass') };
+  const data = await post('/auth/register', body);
+  if (data.token) { saveAuth(data); closeAuth(); loadElections(); toast('Account created!','success'); }
+}
+
+function saveAuth(data) {
+  token = data.token;
+  currentUser = data;
+  localStorage.setItem('token', token);
+  localStorage.setItem('user', JSON.stringify(data));
+  updateNav();
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('token'); localStorage.removeItem('user');
+  updateNav(); loadElections(); toast('Logged out.','success');
+}
+
+// ── Elections ─────────────────────────────────────────────────────────────────
+async function loadElections() {
+  const grid = document.getElementById('electionsGrid');
+  grid.innerHTML = '<div class="empty">Loading…</div>';
+  const elections = await get('/elections');
+  if (!elections || !elections.length) {
+    grid.innerHTML = '<div class="empty">No active elections right now.</div>';
+    document.getElementById('electionCount').textContent = '';
+    return;
+  }
+  document.getElementById('electionCount').textContent = `(${elections.length})`;
+  grid.innerHTML = elections.map(e => electionCard(e)).join('');
+}
+
+function electionCard(e) {
+  const end = new Date(e.endTime).toLocaleString();
+  return `
+  <div class="election-card">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:.75rem">
+      <span class="status-badge status-${e.status}">${e.status}</span>
+      <span style="font-size:.78rem;color:var(--muted)">${e.candidates?.length||0} candidates</span>
+    </div>
+    <h3>${e.title}</h3>
+    <p>${e.description||'No description provided.'}</p>
+    <div class="meta">
+      <span>⏰ Ends ${end}</span>
+    </div>
+    <div style="display:flex;gap:.6rem">
+      <button class="btn btn-primary btn-sm" onclick="openVote(${e.id},'${e.title.replace(/'/g,"\\'")}')">Vote Now</button>
+      <button class="btn btn-ghost btn-sm" onclick="showResults(${e.id})">Results</button>
+    </div>
+  </div>`;
+}
+
+// ── Vote Flow ─────────────────────────────────────────────────────────────────
+async function openVote(electionId, title) {
+  if (!token) { openAuth(); return; }
+  currentElectionId = electionId;
+  selectedCandidateId = null;
+  document.getElementById('voteElectionTitle').textContent = title;
+  const election = await get('/elections/'+electionId);
+  const hasVotedResp = await get('/elections/'+electionId+'/has-voted');
+  if (hasVotedResp?.hasVoted) { toast('You already voted in this election.','error'); return; }
+  const list = document.getElementById('candidateList');
+  list.innerHTML = (election.candidates||[]).map(c => `
+    <div class="candidate-item" id="ci-${c.id}" onclick="selectCandidate(${c.id})">
+      <div class="avatar">${c.name[0]}</div>
+      <div class="candidate-info">
+        <h4>${c.name}</h4>
+        <small>${c.party||'Independent'}</small>
+        ${c.bio ? `<p style="font-size:.8rem;color:var(--muted);margin-top:.3rem">${c.bio}</p>` : ''}
+      </div>
+      <div class="vote-check">✓</div>
+    </div>`).join('');
+  document.getElementById('voteOverlay').classList.add('show');
+}
+
+function selectCandidate(id) {
+  document.querySelectorAll('.candidate-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('ci-'+id)?.classList.add('selected');
+  selectedCandidateId = id;
+}
+
+function closeVote() { document.getElementById('voteOverlay').classList.remove('show'); }
+
+async function submitVote() {
+  if (!selectedCandidateId) { toast('Please select a candidate.','error'); return; }
+  const data = await authPost('/votes', { electionId: currentElectionId, candidateId: selectedCandidateId });
+  if (data?.receiptHash) {
+    closeVote();
+    const msg = `✅ Vote cast!\n\nYour receipt hash:\n${data.receiptHash}\n\nSave this to verify your vote later.`;
+    alert(msg);
+    toast('Vote submitted successfully!','success');
+  }
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
+async function showResults(electionId) {
+  const data = await get('/elections/'+electionId+'/results');
+  if (!data) return;
+  const html = data.results.map((r,i) => `
+    <div class="result-bar-wrap">
+      <div class="result-label">
+        <span>${r.candidateName}${r.party?' ('+r.party+')':''} ${i===0&&r.votes>0?'<span class="winner-tag">LEADING</span>':''}</span>
+        <span>${r.votes} votes · ${r.percentage.toFixed(1)}%</span>
+      </div>
+      <div class="result-bar"><div class="result-fill" style="width:${r.percentage}%"></div></div>
+    </div>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay show';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <button class="close-btn" onclick="this.closest('.overlay').remove()">×</button>
+      <h2 style="font-family:Syne,sans-serif">${data.electionTitle}</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">Total votes: ${data.totalVotes}</p>
+      ${html}
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ── Verify Receipt ────────────────────────────────────────────────────────────
+async function verifyReceipt() {
+  const hash = document.getElementById('receiptInput').value.trim();
+  if (!hash) return;
+  const data = await get('/votes/verify/'+hash);
+  const el = document.getElementById('verifyResult');
+  el.style.display = 'block';
+  el.className = 'verify-result ' + (data?.valid ? 'ok' : 'err');
+  el.textContent = data?.message || 'Could not verify.';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function v(id) { return document.getElementById(id)?.value?.trim()||''; }
+
+async function get(path) {
+  const opts = token ? { headers: { Authorization: 'Bearer '+token } } : {};
+  const r = await fetch(API+path, opts);
+  if (!r.ok) { const e=await r.json().catch(()=>({})); toast(e.error||'Request failed','error'); return null; }
+  return r.json();
+}
+
+async function post(path, body) {
+  const r = await fetch(API+path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) { toast(data.error||'Request failed','error'); return null; }
+  return data;
+}
+
+async function authPost(path, body) {
+  const r = await fetch(API+path, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(body) });
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) { toast(data.error||'Request failed','error'); return null; }
+  return data;
+}
+
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show '+type;
+  setTimeout(()=>{ t.className=''; }, 3500);
+}
+</script>
+</body>
+</html>
